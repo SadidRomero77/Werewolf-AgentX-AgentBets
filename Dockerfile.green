@@ -25,6 +25,7 @@ RUN --mount=type=cache,target=/home/agent/.cache/uv,uid=1000 \
 # Default environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH=/home/agent/src
 
 # Expose AgentBeats standard port for green agent
 EXPOSE 9009

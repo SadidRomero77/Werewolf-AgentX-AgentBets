@@ -24,6 +24,7 @@ RUN --mount=type=cache,target=/home/agent/.cache/uv,uid=1000 \
 # Default environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH=/home/agent/src
 ENV LLM_MODEL=gpt-4o-mini
 
 # Expose AgentBeats standard port for purple agent
