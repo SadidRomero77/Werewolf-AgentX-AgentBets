@@ -28,11 +28,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Lowercase repository name
+        run: echo "REPO_LC=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
       - name: Extract metadata for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/green-agent
+          images: ${{ env.REGISTRY }}/${{ env.REPO_LC }}/green-agent
           tags: |
             type=ref,event=pr
             type=semver,pattern={{version}}
@@ -86,14 +89,14 @@ jobs:
 
       - name: Push Docker image
         if: success() && github.event_name != 'pull_request'
-        run: docker push --all-tags ${{ env.REGISTRY }}/${{ github.repository }}/green-agent
+        run: docker push --all-tags ${{ env.REGISTRY }}/${{ env.REPO_LC }}/green-agent
 
       - name: Output image info
         if: success() && github.event_name != 'pull_request'
         run: |
           echo "## Green Agent Published :wolf:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** \`${{ env.REGISTRY }}/${{ github.repository }}/green-agent\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${{ env.REGISTRY }}/${{ env.REPO_LC }}/green-agent\`" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:** ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
 
   # ============ Purple Agent ============
@@ -108,11 +111,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Lowercase repository name
+        run: echo "REPO_LC=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
       - name: Extract metadata for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/purple-agent
+          images: ${{ env.REGISTRY }}/${{ env.REPO_LC }}/purple-agent
           tags: |
             type=ref,event=pr
             type=semver,pattern={{version}}
@@ -168,12 +174,12 @@ jobs:
 
       - name: Push Docker image
         if: success() && github.event_name != 'pull_request'
-        run: docker push --all-tags ${{ env.REGISTRY }}/${{ github.repository }}/purple-agent
+        run: docker push --all-tags ${{ env.REGISTRY }}/${{ env.REPO_LC }}/purple-agent
 
       - name: Output image info
         if: success() && github.event_name != 'pull_request'
         run: |
           echo "## Purple Agent Published :video_game:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** \`${{ env.REGISTRY }}/${{ github.repository }}/purple-agent\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${{ env.REGISTRY }}/${{ env.REPO_LC }}/purple-agent\`" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:** ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY

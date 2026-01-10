@@ -29,6 +29,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Lowercase repository name
+        run: echo "REPO_LC=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -44,7 +47,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/green-agent
+          images: ${{ env.REGISTRY }}/${{ env.REPO_LC }}/green-agent
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -75,6 +78,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Lowercase repository name
+        run: echo "REPO_LC=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -90,7 +96,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/purple-agent
+          images: ${{ env.REGISTRY }}/${{ env.REPO_LC }}/purple-agent
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -127,14 +133,14 @@ jobs:
 
       - name: Test Green Agent health
         run: |
-          docker run -d --name green-test -p 8000:8000 werewolf-green:test
+          docker run -d --name green-test -p 9009:9009 werewolf-green:test
           sleep 5
-          curl -f http://localhost:8000/health
+          curl -f http://localhost:9009/.well-known/agent-card.json
           docker stop green-test
 
       - name: Test Purple Agent health
         run: |
-          docker run -d --name purple-test -p 8001:8001 werewolf-purple:test
+          docker run -d --name purple-test -p 9010:9010 -e LLM_MODEL=dummy werewolf-purple:test
           sleep 5
-          curl -f http://localhost:8001/health
+          curl -f http://localhost:9010/.well-known/agent-card.json
           docker stop purple-test
