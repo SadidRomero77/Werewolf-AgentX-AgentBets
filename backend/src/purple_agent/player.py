@@ -7,7 +7,12 @@
 #
 #     https://www.apache.org/licenses/LICENSE-2.0
 
-"""Purple Agent Player - LLM-based Werewolf player logic."""
+"""Purple Agent Player - Generic LLM-based game player.
+
+This is a GENERIC player that works with any game. It receives all game rules
+and instructions from the Green Agent and makes decisions based on that info.
+No game-specific knowledge is hardcoded here.
+"""
 
 import json
 import logging
@@ -23,7 +28,12 @@ logger = logging.getLogger(__name__)
 
 
 class LLMPlayer:
-    """LLM-based player for Werewolf game."""
+    """Generic LLM-based player for any game.
+
+    This player receives all game rules and role information from the
+    Green Agent and makes decisions based on that information.
+    No game-specific knowledge is hardcoded.
+    """
 
     def __init__(
         self,
@@ -34,18 +44,16 @@ class LLMPlayer:
         self.model = model
         self.temperature = temperature
         self.max_retries = max_retries
-        
+
         # Player state (set during role assignment)
         self.player_name: Optional[str] = None
         self.role: Optional[str] = None
-        self.team: Optional[str] = None
-        self.teammates: Optional[List[str]] = None
         self.system_prompt: Optional[str] = None
-        
+
         # Game memory
         self.observations: List[str] = []
         self.game_history: List[Dict[str, Any]] = []
-        
+
         # LLM client
         self._client: Optional[OpenAI] = None
 
@@ -83,38 +91,39 @@ class LLMPlayer:
         game_rules: str,
         teammates: Optional[List[str]] = None,
     ):
-        """Assign role to this player."""
+        """Assign role to this player using info from the green agent.
+
+        Args:
+            player_name: Name assigned to this player
+            role: The role name (e.g., "werewolf", "villager")
+            role_description: Complete role description from green agent
+            game_rules: Complete game rules from green agent
+            teammates: List of teammate names (if applicable)
+        """
         self.player_name = player_name
         self.role = role
-        
-        # Determine team
-        self.team = "werewolves" if role.lower() == "werewolf" else "villagers"
-        self.teammates = teammates
-        
-        # Generate system prompt
+
+        # Build complete role info from green agent's description
+        # This is the key change: we use the green agent's info, not hardcoded prompts
+        full_role_info = f"{game_rules}\n\n{role_description}"
+        if teammates:
+            full_role_info += f"\n\nYour teammates: {', '.join(teammates)}"
+
+        # Generate system prompt using info from green agent
         self.system_prompt = get_system_prompt(
             player_name=player_name,
-            role=role,
-            team=self.team,
-            teammates=teammates,
+            role_info=full_role_info,
         )
-        
-        # Add role description and rules to observations
-        self.observations = [
-            f"You are {player_name}, a {role}.",
-            f"Your team: {self.team}",
-        ]
-        if teammates:
-            self.observations.append(f"Your teammates: {', '.join(teammates)}")
-        
+
+        # Initialize observations (will be populated by game events)
+        self.observations = []
+
         logger.info(f"Player {player_name} assigned role: {role}")
 
     def reset(self):
         """Reset player state for a new game."""
         self.player_name = None
         self.role = None
-        self.team = None
-        self.teammates = None
         self.system_prompt = None
         self.observations = []
         self.game_history = []
@@ -152,16 +161,28 @@ class LLMPlayer:
     def _generate_response(
         self,
         action: str,
+        context: str,
         options: List[str],
         game_state: Dict[str, Any],
     ) -> Tuple[str, Optional[str]]:
-        """Generate a response using the LLM."""
+        """Generate a response using the LLM.
+
+        Args:
+            action: The type of action requested
+            context: Instructions/context from the green agent for this action
+            options: Valid choices for this action
+            game_state: Current game state from the green agent
+
+        Returns:
+            Tuple of (decision, reasoning)
+        """
         if not self.system_prompt:
             raise ValueError("Role not assigned. Call assign_role first.")
-        
-        # Build action prompt
+
+        # Build action prompt using context from green agent
         action_prompt = get_action_prompt(
             action=action,
+            context=context,
             options=options,
             game_state=game_state,
             observations=self.observations,
@@ -240,22 +261,34 @@ class LLMPlayer:
         options: Optional[List[str]] = None,
         context: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Process an action request and return response."""
+        """Process an action request and return response.
+
+        Args:
+            action: The type of action requested (e.g., "vote", "debate")
+            game_state: Current game state from the green agent
+            options: Valid choices for this action
+            context: Instructions from the green agent for this action
+
+        Returns:
+            Dict with "decision" and "reasoning" keys
+        """
         options = options or []
-        
+        context = context or "Make your decision."
+
         # Add any announcements to observations
         for announcement in game_state.get("announcements", []):
             if announcement not in self.observations:
                 self.observations.append(announcement)
-        
+
         # Add player's own observations from game state
         for obs in game_state.get("your_observations", []):
             if obs not in self.observations:
                 self.observations.append(obs)
-        
-        # Generate decision
+
+        # Generate decision using context from green agent
         decision, reasoning = self._generate_response(
             action=action,
+            context=context,
             options=options,
             game_state=game_state,
         )

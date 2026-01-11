@@ -102,6 +102,66 @@ As the DOCTOR, you have a special power:
 """,
 }
 
+# Context templates for each action type - provides rich instructions to purple agents
+ACTION_CONTEXTS = {
+    ActionType.ELIMINATE: """WEREWOLF NIGHT ACTION: Choose a player to eliminate.
+
+STRATEGIC CONSIDERATIONS:
+- Target players who seem most dangerous to your team
+- Consider eliminating suspected Seer or Doctor first
+- Avoid targeting players who might be protected by the Doctor
+- If you've been accused, eliminating your accuser may help
+
+Your fellow werewolves: {teammates}
+Remember: Only one elimination happens per night. Choose wisely.""",
+
+    ActionType.PROTECT: """DOCTOR NIGHT ACTION: Choose a player to protect from elimination.
+
+STRATEGIC CONSIDERATIONS:
+- You can protect yourself if you feel targeted
+- Try to predict who the werewolves will attack
+- Protect players who seem valuable (Seer, influential villagers)
+- Consider protecting vocal players who might be targets
+- Watch for patterns in who werewolves have targeted before
+
+Your protection will save this player if werewolves attack them tonight.""",
+
+    ActionType.INVESTIGATE: """SEER NIGHT ACTION: Choose a player to investigate.
+
+STRATEGIC CONSIDERATIONS:
+- Investigate players you're unsure about
+- Avoid wasting investigations on obvious villagers
+- Consider investigating players who are behaving suspiciously
+- Your information is valuable - use it to guide village votes
+- Balance revealing info vs. protecting your identity
+
+You will learn if the player is a WEREWOLF or NOT A WEREWOLF.""",
+
+    ActionType.DEBATE: """DAY PHASE: Share your thoughts with the village.
+
+YOU SHOULD:
+- Analyze recent events and share observations
+- Accuse suspicious players (with reasoning)
+- Defend yourself if accused (without being too defensive)
+- Build alliances with players you trust
+- Watch for inconsistencies in others' statements
+
+If you are a WEREWOLF: Blend in, cast suspicion on villagers, defend fellow wolves subtly.
+If you are a VILLAGER/SEER/DOCTOR: Try to identify werewolves, share useful observations.""",
+
+    ActionType.VOTE: """VOTING PHASE: Vote to eliminate a suspected werewolf.
+
+STRATEGIC CONSIDERATIONS:
+- Review the debate for suspicious behavior
+- Consider who has made inconsistent statements
+- Think about who benefits from certain eliminations
+- Don't just follow the crowd - use your own judgment
+- If you have information (Seer), use it wisely
+
+If you are a WEREWOLF: Vote strategically to avoid suspicion while eliminating villagers.
+If you are a VILLAGER: Vote for who you genuinely believe is a werewolf.""",
+}
+
 
 class GameOrchestrator:
     """Orchestrates a Werewolf game via A2A protocol."""
@@ -232,38 +292,43 @@ class GameOrchestrator:
             your_observations=self.observations.get(for_player, []).copy(),
         )
 
-    def _get_role_description(self, role: RoleType) -> str:
-        """Get full role description for a player."""
+    async def _send_role_assignments(self):
+        """Send role assignments to all players.
+
+        This is where the green agent communicates all game rules and
+        role-specific instructions to each purple agent player.
+        """
+        self._emit_update("Assigning roles to players")
+
+        # Build role counts string for game rules
         distribution = ROLE_DISTRIBUTIONS[self.num_players]
         role_counts = ", ".join([
             f"{count} {role_name}" for role_name, count in distribution.items()
         ])
-        
-        return GAME_RULES.format(
-            num_players=self.num_players,
-            role_counts=role_counts,
-            role=role.value,
-            role_specific_instructions=ROLE_INSTRUCTIONS[role],
-        )
 
-    async def _send_role_assignments(self):
-        """Send role assignments to all players."""
-        self._emit_update("Assigning roles to players")
-        
         tasks = []
         for player_name in self.player_names:
             role = self.roles[player_name]
+
+            # Build complete game rules (without role-specific instructions)
+            # This gives the player an overview of the game
+            game_rules = GAME_RULES.format(
+                num_players=self.num_players,
+                role_counts=role_counts,
+                role=role.value,
+                role_specific_instructions="(See role_description for your specific instructions)",
+            )
+
+            # Build role-specific description with full instructions
+            # This tells the player exactly how to play their role
+            role_description = ROLE_INSTRUCTIONS[role]
+
             assignment = RoleAssignment(
                 task_id=self.task_id,
                 player_name=player_name,
                 role=role,
-                role_description=self._get_role_description(role),
-                game_rules=GAME_RULES.format(
-                    num_players=self.num_players,
-                    role_counts="",
-                    role=role.value,
-                    role_specific_instructions="",
-                ),
+                role_description=role_description,
+                game_rules=game_rules,
                 teammates=self._get_teammates(player_name),
             )
             endpoint = self.participants[player_name]
@@ -331,7 +396,9 @@ class GameOrchestrator:
                 wolf,
                 ActionType.ELIMINATE,
                 options=potential_targets,
-                context=f"Choose a player to eliminate. Fellow wolves: {werewolves}",
+                context=ACTION_CONTEXTS[ActionType.ELIMINATE].format(
+                    teammates=", ".join(werewolves) if len(werewolves) > 1 else "You are the only werewolf"
+                ),
             )
             eliminated_target = response.decision if response.decision in potential_targets else None
             
@@ -356,7 +423,7 @@ class GameOrchestrator:
                 doctor,
                 ActionType.PROTECT,
                 options=self.alive_players,
-                context="Choose a player to protect from elimination tonight.",
+                context=ACTION_CONTEXTS[ActionType.PROTECT],
             )
             protected_target = response.decision if response.decision in self.alive_players else None
             
@@ -387,7 +454,7 @@ class GameOrchestrator:
                     seer,
                     ActionType.INVESTIGATE,
                     options=investigation_targets,
-                    context="Choose a player to investigate their true role.",
+                    context=ACTION_CONTEXTS[ActionType.INVESTIGATE],
                 )
                 investigated = response.decision if response.decision in investigation_targets else None
                 
@@ -460,7 +527,7 @@ class GameOrchestrator:
             response = await self._request_action(
                 speaker,
                 ActionType.DEBATE,
-                context="Share your thoughts with the group. Try to identify werewolves or defend yourself.",
+                context=ACTION_CONTEXTS[ActionType.DEBATE],
             )
             
             statement = response.decision or "(said nothing)"
@@ -495,7 +562,7 @@ class GameOrchestrator:
                 voter,
                 ActionType.VOTE,
                 options=options,
-                context="Vote for who you believe is a werewolf and should be eliminated.",
+                context=ACTION_CONTEXTS[ActionType.VOTE],
             )
             
             voted_for = response.decision if response.decision in options else None
