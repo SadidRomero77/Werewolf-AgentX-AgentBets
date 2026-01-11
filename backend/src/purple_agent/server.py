@@ -40,15 +40,15 @@ class AppState:
     """Application state for the Purple Agent server."""
 
     def __init__(self):
-        self.host: str = "0.0.0.0"
-        self.port: int = 9010  # AgentBeats standard port for purple agent
-        self.card_url: Optional[str] = None
+        # Read from environment variables (set by main() before uvicorn reimports)
+        self.host: str = os.environ.get("AGENT_HOST", "0.0.0.0")
+        self.port: int = int(os.environ.get("AGENT_PORT", "9010"))
+        self.card_url: Optional[str] = os.environ.get("AGENT_CARD_URL")
         self.player: Optional[LLMPlayer] = None
         self.model: str = os.environ.get("LLM_MODEL", "gpt-4o-mini")
-        
+
         # Auto-fallback to dummy if no API key present
         if self.model != "dummy" and not os.environ.get("OPENAI_API_KEY"):
-            # Check if using other providers that might use different keys, but generally:
             logger.warning("OPENAI_API_KEY not found. Defaulting to 'dummy' model for simulation.")
             self.model = "dummy"
         self.current_task_id: Optional[str] = None
@@ -326,14 +326,18 @@ def main():
     parser.add_argument("--card-url", help="URL to advertise in agent card")
     parser.add_argument("--model", default="gpt-4o-mini", help="LLM model to use")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload")
-    
+
     args = parser.parse_args()
-    
-    app_state.host = args.host
-    app_state.port = args.port
-    app_state.card_url = args.card_url
-    app_state.model = args.model
-    
+
+    # Set environment variables so they're available when uvicorn reimports the module
+    # This is necessary because uvicorn.run() with a string import path creates a fresh module
+    if args.card_url:
+        os.environ["AGENT_CARD_URL"] = args.card_url
+    os.environ["AGENT_HOST"] = args.host
+    os.environ["AGENT_PORT"] = str(args.port)
+    if args.model:
+        os.environ["LLM_MODEL"] = args.model
+
     uvicorn.run(
         "purple_agent.server:app",
         host=args.host,

@@ -91,9 +91,10 @@ class AppState:
     """Application state for the Green Agent server."""
 
     def __init__(self):
-        self.host: str = "0.0.0.0"
-        self.port: int = 9009  # AgentBeats standard port for green agent
-        self.card_url: Optional[str] = None
+        # Read from environment variables (set by main() before uvicorn reimports)
+        self.host: str = os.environ.get("AGENT_HOST", "0.0.0.0")
+        self.port: int = int(os.environ.get("AGENT_PORT", "9009"))
+        self.card_url: Optional[str] = os.environ.get("AGENT_CARD_URL")
         self.active_assessments: Dict[str, GameOrchestrator] = {}
         self.completed_results: Dict[str, AssessmentResult] = {}
         self.task_updates: Dict[str, List[TaskUpdate]] = {}
@@ -201,9 +202,13 @@ class A2ARequest(BaseModel):
 async def handle_a2a(request: A2ARequest, background_tasks: BackgroundTasks) -> Dict[str, Any]:
     """Main A2A protocol endpoint."""
     logger.info(f"Received A2A request: method={request.method}, id={request.id}")
-    
+
     try:
-        if request.method == "assessment_request":
+        # A2A standard message/send method
+        if request.method == "message/send":
+            return await handle_message_send(request.params, request.id, background_tasks)
+        # Legacy methods for backwards compatibility
+        elif request.method == "assessment_request":
             return await handle_assessment_request(request.params, background_tasks)
         elif request.method == "get_status":
             return await handle_get_status(request.params)
@@ -220,6 +225,178 @@ async def handle_a2a(request: A2ARequest, background_tasks: BackgroundTasks) -> 
             id=request.id,
             error={"code": -32000, "message": str(e)},
         ).model_dump()
+
+
+async def handle_message_send(
+    params: Dict[str, Any],
+    request_id: Optional[str],
+    background_tasks: BackgroundTasks,
+) -> Dict[str, Any]:
+    """Handle A2A standard message/send method."""
+    logger.info(f"message/send params: {json.dumps(params, indent=2)}")
+
+    message = params.get("message", {})
+
+    # Extract task info from message
+    task_id = message.get("taskId") or message.get("task_id") or str(uuid.uuid4())
+    context_id = message.get("contextId") or task_id
+
+    # Get participants from message parts or context
+    parts = message.get("parts", [])
+
+    # Try to extract participants from the message
+    participants = {}
+    config_dict = {}
+
+    for part in parts:
+        if part.get("kind") == "data":
+            data = part.get("data", {})
+            if "participants" in data:
+                participants = data["participants"]
+            if "config" in data:
+                config_dict = data["config"]
+        elif part.get("kind") == "text":
+            # Text part might contain JSON with participants
+            text = part.get("text", "")
+            try:
+                data = json.loads(text)
+                if isinstance(data, dict):
+                    if "participants" in data:
+                        participants = data["participants"]
+                    if "config" in data:
+                        config_dict = data["config"]
+            except json.JSONDecodeError:
+                pass
+
+    # Check if participants are passed at the top level of params
+    if not participants and "participants" in params:
+        participants = params["participants"]
+
+    logger.info(f"Extracted participants: {participants}")
+
+    # If no participants, return error in A2A format
+    if not participants or len(participants) < 5:
+        return {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "result": {
+                "kind": "task",
+                "id": task_id,
+                "contextId": context_id,
+                "status": {"state": "failed"},
+                "artifacts": [{
+                    "artifactId": f"{task_id}_error",
+                    "parts": [{
+                        "kind": "text",
+                        "text": f"Error: Minimum 5 participants required, got {len(participants)}. Participants: {list(participants.keys()) if participants else 'none'}"
+                    }]
+                }]
+            }
+        }
+
+    # Initialize task tracking
+    app_state.task_updates[task_id] = []
+
+    def on_update(update: TaskUpdate):
+        app_state.task_updates[task_id].append(update)
+
+    # Create config
+    config = AssessmentConfig(**config_dict) if config_dict else AssessmentConfig()
+    config.num_players = len(participants)
+
+    # Create orchestrator
+    orchestrator = GameOrchestrator(
+        task_id=task_id,
+        participants=participants,
+        config=config,
+        on_task_update=on_update,
+        event_callback=app_state.ws_manager.broadcast,
+    )
+    app_state.active_assessments[task_id] = orchestrator
+
+    # Check if blocking mode is requested
+    configuration = params.get("configuration", {})
+    is_blocking = configuration.get("blocking", False)
+
+    if is_blocking:
+        # Run game synchronously for blocking requests
+        logger.info(f"Running assessment {task_id} synchronously (blocking mode)")
+        try:
+            result = await orchestrator.run_game()
+            app_state.completed_results[task_id] = result
+            logger.info(f"Assessment {task_id} completed. Winner: {result.winner}")
+
+            # Return completed task with results
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "result": {
+                    "kind": "task",
+                    "id": task_id,
+                    "contextId": context_id,
+                    "status": {"state": "completed"},
+                    "artifacts": [{
+                        "artifactId": f"{task_id}_results",
+                        "parts": [
+                            {
+                                "kind": "text",
+                                "text": f"Game completed! Winner: {result.winner}"
+                            },
+                            {
+                                "kind": "data",
+                                "data": {
+                                    "winner": result.winner,
+                                    "rounds_played": result.rounds_played,
+                                    "game_log": result.game_log[-10:] if result.game_log else [],
+                                    "scores": [score.model_dump() for score in result.scores] if result.scores else [],
+                                }
+                            }
+                        ]
+                    }]
+                }
+            }
+        except Exception as e:
+            logger.exception(f"Assessment {task_id} failed: {e}")
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "result": {
+                    "kind": "task",
+                    "id": task_id,
+                    "contextId": context_id,
+                    "status": {"state": "failed"},
+                    "artifacts": [{
+                        "artifactId": f"{task_id}_error",
+                        "parts": [{
+                            "kind": "text",
+                            "text": f"Game failed: {str(e)}"
+                        }]
+                    }]
+                }
+            }
+    else:
+        # Run game in background for non-blocking requests
+        background_tasks.add_task(run_assessment, task_id, orchestrator)
+        logger.info(f"Started assessment {task_id} with {len(participants)} participants via message/send")
+
+        # Return A2A standard response format (Task object)
+        return {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "result": {
+                "kind": "task",
+                "id": task_id,
+                "contextId": context_id,
+                "status": {"state": "working"},
+                "artifacts": [{
+                    "artifactId": f"{task_id}_start",
+                    "parts": [{
+                        "kind": "text",
+                        "text": f"Game started with {len(participants)} players: {list(participants.keys())}"
+                    }]
+                }]
+            }
+        }
 
 
 async def handle_assessment_request(
@@ -541,13 +718,15 @@ def main():
     parser.add_argument("--port", type=int, default=9009, help="Port to listen on (AgentBeats standard: 9009)")
     parser.add_argument("--card-url", help="URL to advertise in agent card")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload")
-    
+
     args = parser.parse_args()
-    
-    app_state.host = args.host
-    app_state.port = args.port
-    app_state.card_url = args.card_url
-    
+
+    # Set environment variables so they're available when uvicorn reimports the module
+    if args.card_url:
+        os.environ["AGENT_CARD_URL"] = args.card_url
+    os.environ["AGENT_HOST"] = args.host
+    os.environ["AGENT_PORT"] = str(args.port)
+
     uvicorn.run(
         "green_agent.server:app",
         host=args.host,

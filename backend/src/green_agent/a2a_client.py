@@ -47,6 +47,11 @@ class A2AClient:
         self.retry_delay = retry_delay
         self._client: Optional[httpx.AsyncClient] = None
 
+    @staticmethod
+    def _normalize_endpoint(endpoint: str) -> str:
+        """Normalize endpoint URL by removing trailing slashes."""
+        return endpoint.rstrip("/")
+
     async def __aenter__(self):
         self._client = httpx.AsyncClient(timeout=self.timeout)
         return self
@@ -65,6 +70,9 @@ class A2AClient:
         """Send an A2A message and get response."""
         if not self._client:
             raise A2AClientError("Client not initialized. Use async context manager.")
+
+        # Normalize endpoint to avoid double slashes
+        endpoint = self._normalize_endpoint(endpoint)
 
         message = A2AMessage(
             method=method,
@@ -116,6 +124,9 @@ class A2AClient:
         """Get agent card/info from a Purple Agent."""
         if not self._client:
             raise A2AClientError("Client not initialized. Use async context manager.")
+
+        # Normalize endpoint to avoid double slashes
+        endpoint = self._normalize_endpoint(endpoint)
 
         try:
             response = await self._client.get(f"{endpoint}/info")
