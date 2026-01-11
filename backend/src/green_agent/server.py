@@ -347,6 +347,7 @@ async def handle_message_send(
                                 {
                                     "kind": "data",
                                     "data": {
+                                        "participants": result.participants if result.participants else {},
                                         "winner": result.winner,
                                         "rounds_played": result.rounds_played,
                                         "game_log": result.game_log if result.game_log else [],

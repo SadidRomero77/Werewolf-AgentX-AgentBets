@@ -849,6 +849,7 @@ class GameOrchestrator:
                 task_id=self.task_id,
                 winner=self.winner,
                 rounds_played=self.current_round,
+                participants=self.participants,  # Map Player_X -> endpoint for traceability
                 game_log=self.game_log,
                 scores=scores,
                 aggregate_metrics=aggregate,
