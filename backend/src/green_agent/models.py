@@ -222,6 +222,10 @@ class AssessmentResult(BaseModel):
     scores: List[PlayerScore] = Field(default_factory=list)  # Single-game scores
     aggregate_metrics: Dict[str, float] = Field(default_factory=dict)
 
+    # Detailed action traces with reasoning (for transparency/debugging)
+    action_log: List[Dict[str, Any]] = Field(default_factory=list)
+    debate_history: List[Dict[str, str]] = Field(default_factory=list)
+
 
 class ErrorMessage(BaseModel):
     """Error message for failed operations."""

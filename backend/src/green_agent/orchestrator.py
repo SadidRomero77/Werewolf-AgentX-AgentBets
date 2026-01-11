@@ -194,9 +194,12 @@ class GameOrchestrator:
         self.debate_history: List[Dict[str, str]] = []
         self.announcements: List[str] = []
         self.observations: Dict[str, List[str]] = {}  # player -> their observations
-        
+
         # Game log for results
         self.game_log: List[Dict[str, Any]] = []
+
+        # Detailed action log with reasoning (for traces/artifacts)
+        self.action_log: List[Dict[str, Any]] = []
         
         # Scoring
         self.scoring = ScoringEngine()
@@ -234,6 +237,27 @@ class GameOrchestrator:
                 await self.event_callback(full_event)
             else:
                 self.event_callback(full_event)
+
+    def _log_action(
+        self,
+        player: str,
+        action_type: str,
+        decision: str,
+        reasoning: Optional[str] = None,
+        context: Optional[Dict[str, Any]] = None,
+    ):
+        """Log a player action with reasoning for traces/artifacts."""
+        self.action_log.append({
+            "round": self.current_round,
+            "phase": self.current_phase.value if hasattr(self.current_phase, 'value') else str(self.current_phase),
+            "player": player,
+            "role": self.roles.get(player, "unknown"),
+            "action": action_type,
+            "decision": decision,
+            "reasoning": reasoning,
+            "context": context or {},
+            "timestamp": datetime.now().isoformat(),
+        })
 
     def _assign_roles(self) -> Dict[str, RoleType]:
         """Randomly assign roles to players."""
@@ -407,6 +431,14 @@ class GameOrchestrator:
                     f"Werewolves target {eliminated_target}",
                     {"werewolf_action": "eliminate", "target": eliminated_target}
                 )
+                # Log werewolf action with reasoning
+                self._log_action(
+                    player=wolf,
+                    action_type="eliminate",
+                    decision=eliminated_target,
+                    reasoning=response.reasoning,
+                    context={"options": potential_targets, "teammates": werewolves}
+                )
                 # Add observation for all werewolves
                 for wolf_name in werewolves:
                     if wolf_name not in self.observations:
@@ -431,6 +463,14 @@ class GameOrchestrator:
                 self._emit_update(
                     f"Doctor protects {protected_target}",
                     {"doctor_action": "protect", "target": protected_target}
+                )
+                # Log doctor action with reasoning
+                self._log_action(
+                    player=doctor,
+                    action_type="protect",
+                    decision=protected_target,
+                    reasoning=response.reasoning,
+                    context={"options": self.alive_players}
                 )
                 if doctor not in self.observations:
                     self.observations[doctor] = []
@@ -462,12 +502,20 @@ class GameOrchestrator:
                     role = self.roles[investigated]
                     is_werewolf = role == RoleType.WEREWOLF
                     result = "WEREWOLF" if is_werewolf else "NOT A WEREWOLF"
-                    
+
                     self._emit_update(
                         f"Seer investigates {investigated}",
                         {"seer_action": "investigate", "target": investigated}
                     )
-                    
+                    # Log seer action with reasoning and result
+                    self._log_action(
+                        player=seer,
+                        action_type="investigate",
+                        decision=investigated,
+                        reasoning=response.reasoning,
+                        context={"options": investigation_targets, "result": result}
+                    )
+
                     if seer not in self.observations:
                         self.observations[seer] = []
                     self.observations[seer].append(
@@ -532,12 +580,21 @@ class GameOrchestrator:
             
             statement = response.decision or "(said nothing)"
             self.debate_history.append({"speaker": speaker, "message": statement})
-            
+
+            # Log debate statement with reasoning
+            self._log_action(
+                player=speaker,
+                action_type="debate",
+                decision=statement,
+                reasoning=response.reasoning,
+                context={"debate_so_far": len(self.debate_history) - 1}
+            )
+
             self._emit_update(
                 f"{speaker} speaks",
                 {"speaker": speaker, "statement": statement[:100]}
             )
-            
+
             await self._emit_event("player_speak", {
                 "player_id": speaker,
                 "content": statement,
@@ -568,7 +625,16 @@ class GameOrchestrator:
             voted_for = response.decision if response.decision in options else None
             if voted_for:
                 votes[voter] = voted_for
-                
+
+                # Log vote action with reasoning
+                self._log_action(
+                    player=voter,
+                    action_type="vote",
+                    decision=voted_for,
+                    reasoning=response.reasoning,
+                    context={"options": options, "debate_summary": len(self.debate_history)}
+                )
+
                 # Track vote accuracy
                 if voter in self.metrics:
                     target_team = self.teams.get(voted_for, "")
@@ -786,4 +852,6 @@ class GameOrchestrator:
                 game_log=self.game_log,
                 scores=scores,
                 aggregate_metrics=aggregate,
+                action_log=self.action_log,
+                debate_history=self.debate_history,
             )

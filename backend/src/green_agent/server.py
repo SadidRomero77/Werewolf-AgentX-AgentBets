@@ -326,7 +326,7 @@ async def handle_message_send(
             app_state.completed_results[task_id] = result
             logger.info(f"Assessment {task_id} completed. Winner: {result.winner}")
 
-            # Return completed task with results
+            # Return completed task with results and traces
             return {
                 "jsonrpc": "2.0",
                 "id": request_id,
@@ -335,24 +335,41 @@ async def handle_message_send(
                     "id": task_id,
                     "contextId": context_id,
                     "status": {"state": "completed"},
-                    "artifacts": [{
-                        "artifactId": f"{task_id}_results",
-                        "parts": [
-                            {
-                                "kind": "text",
-                                "text": f"Game completed! Winner: {result.winner}"
-                            },
-                            {
-                                "kind": "data",
-                                "data": {
-                                    "winner": result.winner,
-                                    "rounds_played": result.rounds_played,
-                                    "game_log": result.game_log[-10:] if result.game_log else [],
-                                    "scores": [score.model_dump() for score in result.scores] if result.scores else [],
+                    "artifacts": [
+                        {
+                            "artifactId": f"{task_id}_results",
+                            "name": "Game Results",
+                            "parts": [
+                                {
+                                    "kind": "text",
+                                    "text": f"Game completed! Winner: {result.winner}"
+                                },
+                                {
+                                    "kind": "data",
+                                    "data": {
+                                        "winner": result.winner,
+                                        "rounds_played": result.rounds_played,
+                                        "game_log": result.game_log if result.game_log else [],
+                                        "scores": [score.model_dump() for score in result.scores] if result.scores else [],
+                                    }
                                 }
-                            }
-                        ]
-                    }]
+                            ]
+                        },
+                        {
+                            "artifactId": f"{task_id}_traces",
+                            "name": "Action Traces",
+                            "description": "Detailed log of all player decisions with reasoning",
+                            "parts": [
+                                {
+                                    "kind": "data",
+                                    "data": {
+                                        "action_log": result.action_log if result.action_log else [],
+                                        "debate_history": result.debate_history if result.debate_history else [],
+                                    }
+                                }
+                            ]
+                        }
+                    ]
                 }
             }
         except Exception as e:
