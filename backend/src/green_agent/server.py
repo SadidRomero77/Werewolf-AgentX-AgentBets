@@ -197,6 +197,7 @@ class A2ARequest(BaseModel):
 
 
 @app.post("/a2a")
+@app.post("/")  # Also handle at root for A2A client compatibility
 async def handle_a2a(request: A2ARequest, background_tasks: BackgroundTasks) -> Dict[str, Any]:
     """Main A2A protocol endpoint."""
     logger.info(f"Received A2A request: method={request.method}, id={request.id}")
