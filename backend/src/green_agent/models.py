@@ -226,6 +226,15 @@ class AssessmentResult(BaseModel):
     action_log: List[Dict[str, Any]] = Field(default_factory=list)
     debate_history: List[Dict[str, str]] = Field(default_factory=list)
 
+    # ========== NEW: Qualitative Evaluation (LLM-as-Judge) ==========
+    # This field contains the qualitative analysis explaining WHY certain agents
+    # performed better, using G-Eval methodology with explicit rubrics.
+    # Reference: Zheng et al. 2023 "Judging LLM-as-a-Judge", Liu et al. 2023 "G-Eval"
+    evaluation: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Qualitative evaluation with best_player justification and skill scores"
+    )
+
 
 class ErrorMessage(BaseModel):
     """Error message for failed operations."""

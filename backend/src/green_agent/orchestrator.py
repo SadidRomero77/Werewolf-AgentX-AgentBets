@@ -32,6 +32,9 @@ from green_agent.models import (
 from green_agent.a2a_client import A2AClient, verify_agent_connectivity
 from green_agent.scoring import ScoringEngine, PlayerMetrics, detect_sabotage
 
+# ========== NEW IMPORT: Qualitative Evaluator ==========
+from green_agent.evaluator import evaluate_game_quality
+
 logger = logging.getLogger(__name__)
 
 
@@ -251,7 +254,7 @@ class GameOrchestrator:
             "round": self.current_round,
             "phase": self.current_phase.value if hasattr(self.current_phase, 'value') else str(self.current_phase),
             "player": player,
-            "role": self.roles.get(player, "unknown"),
+            "role": self.roles.get(player, "unknown").value if hasattr(self.roles.get(player, "unknown"), 'value') else str(self.roles.get(player, "unknown")),
             "action": action_type,
             "decision": decision,
             "reasoning": reasoning,
@@ -845,14 +848,65 @@ class GameOrchestrator:
                 "rounds": self.current_round
             })
             
+            # ================================================================
+            # NEW: Qualitative Evaluation using LLM-as-Judge with G-Eval
+            # ================================================================
+            # This section evaluates WHY certain agents performed better using
+            # academic standards: G-Eval methodology, explicit rubrics, and
+            # evidence-based scoring.
+            # 
+            # References:
+            # - Zheng et al. 2023 "Judging LLM-as-a-Judge" (NeurIPS)
+            # - Liu et al. 2023 "G-Eval"
+            # - Light et al. 2023 "AvalonBench"
+            # ================================================================
+            evaluation = None
+            try:
+                self._emit_update("Running qualitative evaluation (LLM-as-Judge)...")
+                
+                evaluation = await evaluate_game_quality(
+                    winner=self.winner,
+                    total_rounds=self.current_round,
+                    roles={n: r.value for n, r in self.roles.items()},
+                    action_log=self.action_log,
+                    debate_history=self.debate_history,
+                    scores=[s.model_dump() for s in scores],
+                    validate=False,  # Set to True for academic validation (slower)
+                )
+                
+                if evaluation:
+                    best_player_name = evaluation.get("best_player", {}).get("name", "Unknown")
+                    best_player_justification = evaluation.get("best_player", {}).get("justification", "")
+                    
+                    self._emit_update(
+                        f"Evaluation complete. Best player: {best_player_name}",
+                        {
+                            "evaluation_complete": True,
+                            "best_player": best_player_name,
+                        }
+                    )
+                    
+                    logger.info(f"Best player determined: {best_player_name}")
+                    logger.info(f"Justification: {best_player_justification[:200]}...")
+                else:
+                    logger.warning("Qualitative evaluation returned None")
+                    
+            except Exception as e:
+                logger.warning(f"Qualitative evaluation failed (non-critical): {e}")
+                # Game results are still valid, just without qualitative analysis
+            # ================================================================
+            # END NEW: Qualitative Evaluation
+            # ================================================================
+            
             return AssessmentResult(
                 task_id=self.task_id,
                 winner=self.winner,
                 rounds_played=self.current_round,
-                participants=self.participants,  # Map Player_X -> endpoint for traceability
+                participants=self.participants,
                 game_log=self.game_log,
                 scores=scores,
                 aggregate_metrics=aggregate,
                 action_log=self.action_log,
                 debate_history=self.debate_history,
+                evaluation=evaluation,  # NEW: Include qualitative evaluation
             )
