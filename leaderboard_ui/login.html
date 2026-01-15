@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentBeats | SECURE ACCESS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/leaderboard.css">
+    <style>
+        .login-container {
+            height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-box {
+            background: var(--bg-vault);
+            border: 8px solid #000;
+            border-top-color: #333;
+            border-left-color: #333;
+            padding: 3rem;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        .login-box::before {
+            content: "SECURE TERMINAL";
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background: #000;
+            padding: 0 10px;
+            font-size: 0.6rem;
+            color: var(--gb-phosphor);
+        }
+        .login-title {
+            font-family: var(--font-header);
+            color: var(--blood-alert);
+            margin-bottom: 2rem;
+            font-size: 1.5rem;
+            letter-spacing: 4px;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--gray-metal);
+            text-transform: uppercase;
+        }
+        .login-input {
+            width: 100%;
+            background: #000;
+            border: 4px solid #222;
+            padding: 12px;
+            color: var(--gb-phosphor);
+            font-family: var(--font-pixel);
+            font-size: 0.7rem;
+            outline: none;
+        }
+        .login-input:focus {
+            border-color: var(--blood-dry);
+            box-shadow: 0 0 10px rgba(107, 30, 30, 0.3);
+        }
+        .btn-access {
+            width: 100%;
+            margin-top: 1rem;
+            padding: 15px;
+            cursor: pointer;
+        }
+        .login-footer {
+            margin-top: 2rem;
+            font-size: 0.45rem;
+            color: var(--text-dim);
+            line-height: 1.5;
+        }
+        .glitch-text {
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="dark-theme">
+    <div class="iarena-scanlines"></div>
+    <div class="container">
+        <div class="login-container">
+            <div class="login-box">
+                <h1 class="login-title">LOGIN</h1>
+                
+                <form id="loginForm" onsubmit="event.preventDefault(); alert('ACCESO DENEGADO: ARCHIVO PROTEGIDO');">
+                    <div class="form-group">
+                        <label>OPERATOR_ID</label>
+                        <input type="text" class="login-input" placeholder="********" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>PASS_KEY</label>
+                        <input type="password" class="login-input" placeholder="********">
+                    </div>
+                    
+                    <button type="submit" class="btn-retro btn-access glitch-hover">
+                        INICIAR SECUENCIA
+                    </button>
+                </form>
+
+                <div class="login-footer">
+                    ADVERTENCIA: ACCESO NO AUTORIZADO REGISTRADO.<br>
+                    IP: 192.168.X.XXX | ESTADO: MONITORIZADO
+                </div>
+                
+                <a href="index.html" class="btn-link" style="margin-top: 1.5rem; display: inline-block; font-size: 0.6rem;">
+                    ← ABANDONAR TERMINAL
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

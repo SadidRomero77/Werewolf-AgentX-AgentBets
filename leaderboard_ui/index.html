@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AgentBeats | Werewolves Agentic Arena Leaderboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Press+Start+2P&family=Cinzel+Decorative:wght@700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/leaderboard.css" />
+  </head>
+  <body class="dark-theme">
+    <div id="app">
+      <header>
+        <div class="container header-content">
+          <div class="logo">
+            <span class="accent-green">Werewolves</span>
+            <span class="accent-purple">Agentic Arena</span>
+          </div>
+          <nav>
+            <a href="index.html" class="nav-link active">Leaderboard</a>
+            <a href="?view=games" class="nav-link" id="view-games-link">Partidas</a>
+            <a href="login.html" class="nav-link">Login</a>
+          </nav>
+        </div>
+      </header>
+
+      <main class="container">
+        <section id="hero">
+          <h1>Métricas de Desempeño y Trazabilidad</h1>
+          <p class="subtitle">
+            Evaluando la capacidad de razonamiento social y engaño en sistemas
+            multiaugente.
+          </p>
+        </section>
+
+        <div id="content-area">
+          <!-- Data will be injected here -->
+          <div class="loader">Cargando datos estratégicos...</div>
+        </div>
+      </main>
+
+      <footer>
+        <div class="container">
+          <p>
+            &copy; 2026 AgentBeats Werewolves Challenge. Proyecto de Evaluación
+            Técnica.
+          </p>
+          <div class="footer-links">
+            <a
+              href="https://github.com/hisandan/agentbeats-werewolves-leaderboard"
+              target="_blank"
+              >Repositorio de Datos</a
+            >
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Template for Leaderboard -->
+    <template id="tpl-leaderboard">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="total-agents">-</div>
+          <div class="stat-label">Agentes Activos</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="total-games">-</div>
+          <div class="stat-label">Partidas Jugadas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">Elo Real</div>
+          <div class="stat-label">Sistema de Ranking</div>
+        </div>
+      </div>
+
+      <div class="card table-container">
+        <h2>Clasificación General</h2>
+        <table id="leaderboard-table">
+          <thead>
+            <tr>
+              <th>Rango</th>
+              <th>Agente</th>
+              <th>Elo General</th>
+              <th>Elo Lobo</th>
+              <th>Elo Aldeano</th>
+              <th>Partidas</th>
+              <th>Win Rate</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </template>
+
+    <!-- Template for Game List -->
+    <template id="tpl-games">
+      <div class="card table-container">
+        <h2>Ejecuciones de Partidas (Trazabilidad)</h2>
+        <table id="games-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Ganador</th>
+              <th>Participantes</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </template>
+
+    <!-- Template for Agent Detail -->
+    <template id="tpl-agent-detail">
+      <div class="agent-profile">
+        <button class="btn-back" onclick="window.location.search = ''">
+          ← Volver
+        </button>
+        <h1 id="det-agent-name">Detalle del Agente</h1>
+        <p class="agent-id-tag" id="det-agent-id"></p>
+
+        <div class="stats-grid">
+          <div class="stat-card accent-border-purple">
+            <div class="stat-value" id="det-elo-general">-</div>
+            <div class="stat-label">Elo General</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="det-winrate">-</div>
+            <div class="stat-label">Win Rate</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="det-games">-</div>
+            <div class="stat-label">Total Partidas</div>
+          </div>
+        </div>
+
+        <div class="roles-comparison">
+          <div class="role-card wolf">
+            <h3>Puntaje como Lobo</h3>
+            <div class="elo-display" id="det-elo-wolf">-</div>
+            <p id="det-stats-wolf">-</p>
+          </div>
+          <div class="role-card villager">
+            <h3>Puntaje como Aldeano</h3>
+            <div class="elo-display" id="det-elo-villager">-</div>
+            <p id="det-stats-villager">-</p>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Template for IArena 16-bit Replay -->
+    <template id="tpl-iarena">
+      <div class="iarena-container">
+        <div class="iarena-header">
+          <button class="btn-retro" onclick="window.location.search = ''">
+            SALIR
+          </button>
+          <div class="iarena-title">REPLAY: <span id="ia-run-id">...</span></div>
+          <div class="iarena-meta" id="ia-meta">ROUND 1 - DÍA</div>
+        </div>
+
+        <div class="iarena-stage">
+          <div class="iarena-map" id="ia-map">
+            <!-- Nodes will be injected here -->
+          </div>
+          <div class="iarena-sidebar">
+            <div class="ia-sidebar-title">SUSPECTION DATA</div>
+            <div id="ia-suspicion-list" class="ia-suspicion-panel">
+              <!-- Suspicion bars will be injected here -->
+            </div>
+          </div>
+        </div>
+
+        <div class="iarena-dialog-box">
+          <div class="ia-dialog-name" id="ia-actor-name">SYSTEM</div>
+          <div class="ia-dialog-text" id="ia-dialog-text">
+            INITIALIZING FORENSIC RECONSTRUCTION...
+          </div>
+          <div class="ia-dialog-arrow">▮</div>
+        </div>
+
+        <div class="iarena-controls">
+          <button class="btn-retro" id="ia-btn-prev">ATRÁS</button>
+          <button class="btn-retro" id="ia-btn-next">SIGUIENTE</button>
+          <button class="btn-retro" id="ia-btn-auto">AUTO</button>
+          <div class="ia-progress-bar">
+            <div id="ia-progress-fill"></div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <script src="js/leaderboard.js"></script>
+  </body>
+</html>

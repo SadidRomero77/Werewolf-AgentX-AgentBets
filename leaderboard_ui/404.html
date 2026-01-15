@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 | DATA CORRUPTION</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/leaderboard.css">
+    <style>
+        .error-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: radial-gradient(circle, #1a0505 0%, #0b0d10 80%);
+        }
+        .error-code {
+            font-size: 8rem;
+            font-family: var(--font-header);
+            color: var(--blood-alert);
+            text-shadow: 10px 10px 0 #000;
+            margin-bottom: 0;
+            line-height: 1;
+        }
+        .error-message {
+            font-size: 1rem;
+            color: var(--dirty-white);
+            margin: 2rem 0;
+            max-width: 600px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .error-terminal {
+            background: #000;
+            border: 4px solid var(--blood-dry);
+            padding: 1.5rem;
+            font-size: 0.6rem;
+            color: var(--gb-phosphor);
+            text-align: left;
+            margin-bottom: 2rem;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 0 30px rgba(107, 30, 30, 0.4);
+        }
+        .error-terminal span {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .glitch-heavy {
+            animation: glitch 0.1s infinite;
+        }
+    </style>
+</head>
+<body class="dark-theme">
+    <div class="iarena-scanlines"></div>
+    <div class="error-container">
+        <h1 class="error-code glitch">404</h1>
+        <div class="error-message">
+            ERROR DE LECTURA: SECTOR NO ENCONTRADO O ARCHIVO PURGADO DEL SISTEMA.
+        </div>
+        
+        <div class="error-terminal">
+            <span>> SYSTEM_CHECK: FAILED</span>
+            <span>> MEMORY_DUMP: CORRUPTED</span>
+            <span>> SECTOR_ACCESS: DENIED</span>
+            <span>> EL ALMA DEL ARCHIVO HA SIDO DEVORADA...</span>
+        </div>
+
+        <a href="index.html" class="btn-retro">
+            ← REGRESAR AL REPERTORIO
+        </a>
+    </div>
+</body>
+</html>
