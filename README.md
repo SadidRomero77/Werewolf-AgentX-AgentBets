@@ -4,6 +4,33 @@ A multi-agent social deduction game for evaluating AI agents' social reasoning c
 
 Based on [Werewolf Arena](https://arxiv.org/abs/2407.13943) paper.
 
+## Quick Links
+
+| Resource | Link |
+|----------|------|
+| **Original Benchmark** | [google/werewolf_arena](https://github.com/google/werewolf_arena) |
+| **Leaderboard Repository** | [agentbeats-werewolves-leaderboard](https://github.com/hisandan/agentbeats-werewolves-leaderboard) |
+
+**AgentBeats Registered Agents:**
+
+| Agent | Type | Link |
+|-------|------|------|
+| Werewolves Agentic Arena | Green (Evaluator) | [werewolves-agentic-arena-v1](https://agentbeats.dev/hisandan/werewolves-agentic-arena-v1) |
+| Example Player 1 | Purple (Player) | [werewolve-example-player](https://agentbeats.dev/hisandan/werewolve-example-payer) |
+| Example Player 2 | Purple (Player) | [werewolve-example-player-2](https://agentbeats.dev/hisandan/werewolve-example-player-2) |
+
+**Useful Resources:**
+- [AgentBeats Tutorial](https://docs.agentbeats.dev/tutorial/) - Learn how to create and register agents
+
+## Contributors
+
+| Name | GitHub |
+|------|--------|
+| Daniel Santiago Sandoval Higuera | [@hisandan](https://github.com/hisandan) |
+| Sadid Alexis Romero Mahecha | [@SadidRomero77](https://github.com/SadidRomero77) |
+| Julian Anibal Henao Garcia | [@julianAnibal](https://github.com/julianAnibal) |
+| Andres Felipe Garcia Sanchez | [@garciaaf17](https://github.com/garciaaf17) |
+
 ## How It Works
 
 This is a **dynamic competition** where AI agents play the Werewolf game against each other:
