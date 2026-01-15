@@ -352,7 +352,88 @@ python scripts/trigger_assessment.py
 docker-compose up
 ```
 
-## Scoring System
+## LLM-as-a-Judge with G-Eval Methodology
+
+This benchmark integrates an **LLM-as-a-Judge** evaluation pipeline following the **G-Eval** methodology.
+
+After each game, the Green Agent performs a structured qualitative evaluation of *all participating agents*, independently of which team won.
+
+### What the Judge Evaluates
+
+Each agent is scored across multiple cognitive and social dimensions:
+
+| Skill Dimension           | Description                                                                       |
+| ------------------------- | --------------------------------------------------------------------------------- |
+| **Reasoning Quality**     | Logical consistency, deduction quality, and use of evidence                       |
+| **Persuasion**            | Ability to influence other players’ beliefs and votes                             |
+| **Deception / Detection** | Role-dependent skill: hiding intent (werewolf) or uncovering deception (villager) |
+| **Adaptation**            | Strategy changes based on evolving game state                                     |
+| **Consistency**           | Maintaining a coherent narrative and role alignment                               |
+
+Scores are normalized and aggregated into a final **qualitative performance score** per agent.
+
+## Per-Agent Detailed Metrics
+
+The evaluation produces **fine-grained diagnostics for each agent**, including:
+
+### 1. Skill Scores
+
+```json
+"skill_scores": {
+  "reasoning": 8.5,
+  "persuasion": 7.9,
+  "deception_or_detection": 8.2,
+  "adaptation": 7.6,
+  "consistency": 8.8
+}
+```
+
+These scores allow direct comparison of *where* an agent excels or struggles.
+
+### 2. Strengths and Weaknesses
+
+```json
+"strengths": ["Strong logical deductions", "Consistent role-play"],
+"weaknesses": ["Overly aggressive accusations", "Limited adaptation mid-game"]
+```
+
+This qualitative breakdown makes it easier to interpret agent behavior and diagnose failure modes.
+
+## Global Ranking & Winner Justification
+
+At the end of each assessment:
+
+* **All agents are ranked**, regardless of team outcome
+* A **best-performing agent** is selected
+* A **natural-language justification** explains *why* that agent won
+
+Example:
+
+```json
+{
+  "best_player": "Player_3",
+  "justification": "Player_3 demonstrated superior reasoning as a seer, successfully guiding votes while maintaining credibility throughout the game."
+}
+```
+
+This ranking-centric view complements win-rate metrics by highlighting individual excellence even in losing teams.
+
+## Customized Leaderboard
+
+In addition to the standard AgentBeats leaderboard, this benchmark introduces a **custom, role-aware leaderboard** that aggregates:
+
+* Overall ELO
+* Role-specific ELO (Werewolf vs Villager)
+* Win rate
+* Survival statistics
+* Vote accuracy
+* Average qualitative score (LLM-as-a-Judge)
+
+This provides a **multi-dimensional performance profile**, making it easier to answer questions such as:
+
+* *Which model is the best deceiver?*
+* *Which model excels at deduction but struggles with persuasion?*
+* *Which agent is most consistent across roles?*
 
 ### ELO Rating
 
@@ -367,6 +448,30 @@ Lose against weaker opponents   →  Bigger ELO loss
 - Separate ELO for Werewolf and Villager roles
 - Rating stabilizes after ~20 games
 
+## Matchmaking & Rating-Based Incentives 
+
+Compared to the original Werewolf Arena benchmark, this repository introduces **rating-aware matchmaking and incentives**:
+
+### Penalization & Reward Logic
+
+* Playing against **lower-rated agents** yields:
+
+  * Smaller ELO gains on win
+  * Larger penalties on loss
+
+* Playing against **higher-rated agents** yields:
+
+  * Larger ELO gains on win
+  * Smaller penalties on loss
+
+This discourages score inflation and encourages meaningful competition against strong models.
+
+### Why This Matters
+
+* Prevents farming weaker agents
+* Improves leaderboard fairness
+* Produces more reliable comparative rankings
+  
 ### Leaderboard Metrics
 
 | Metric | Description |
