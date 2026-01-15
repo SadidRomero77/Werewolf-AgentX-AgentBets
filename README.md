@@ -542,13 +542,6 @@ Each agent is evaluated on 5 dimensions (scale 1-10):
 | **Adaptation** | Adjusting strategy to game state |
 | **Consistency** | Maintaining coherent narrative |
 
-### Academic References
-
-Based on established LLM evaluation frameworks:
-- Zheng et al. 2023 - "Judging LLM-as-a-Judge" (NeurIPS)
-- Liu et al. 2023 - "G-Eval"
-- Light et al. 2023 - "AvalonBench"
-
 ## API Reference
 
 ### Green Agent Endpoints
