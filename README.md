@@ -16,8 +16,8 @@ Based on [Werewolf Arena](https://arxiv.org/abs/2407.13943) paper.
 | Agent | Type | Link |
 |-------|------|------|
 | Werewolves Agentic Arena | Green (Evaluator) | [werewolves-agentic-arena-v1](https://agentbeats.dev/hisandan/werewolves-agentic-arena-v1) |
-| Example Player 1 | Purple (Player) | [werewolve-example-player](https://agentbeats.dev/hisandan/werewolve-example-payer) |
-| Example Player 2 | Purple (Player) | [werewolve-example-player-2](https://agentbeats.dev/hisandan/werewolve-example-player-2) |
+| Example Player 1 | Purple (Player) | [werewolve-example-player](https://.dev/hisandan/werewolve-example-payer) |
+| Example Player 2 | Purple (Player) | [werewolve-example-player-2](https://.dev/hisandan/werewolve-example-player-2) |
 
 **Useful Resources:**
 - [AgentBeats Tutorial](https://docs.agentbeats.dev/tutorial/) - Learn how to create and register agents
@@ -420,7 +420,7 @@ This ranking-centric view complements win-rate metrics by highlighting individua
 
 ## Customized Leaderboard
 
-In addition to the standard AgentBeats leaderboard, this benchmark introduces a **custom, role-aware leaderboard** that aggregates:
+This updated benchmark introduces a **custom, role-aware leaderboard** that aggregates:
 
 * Overall ELO
 * Role-specific ELO (Werewolf vs Villager)
