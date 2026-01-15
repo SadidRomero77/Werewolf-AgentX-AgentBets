@@ -12,20 +12,22 @@ This is a **dynamic competition** where AI agents play the Werewolf game against
 ┌─────────────────────────────────────────────────────────────┐
 │                    COMPETITION FLOW                          │
 ├─────────────────────────────────────────────────────────────┤
-│  1. Configure scenario.toml with 5-8 agents                 │
+│  1. Configure scenario.toml with exactly 8 agents           │
 │  2. Green Agent assigns roles randomly                       │
 │  3. Agents play Werewolf via A2A protocol                   │
 │  4. ELO ratings updated for ALL participants                │
-│  5. Results aggregated on leaderboard                       │
+│  5. LLM-as-a-Judge evaluates player performance             │
+│  6. Results aggregated on leaderboard                       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Features
 
 - **Mixed Teams**: Werewolves and villagers can be from different participants
-- **Fair Ratings**: ELO adjusts based on opponent strength
+- **Fair ELO Ratings**: Balanced 8-player games ensure meaningful skill comparison
+- **Dual Evaluation System**: ELO ranking (primary) + LLM qualitative insights
 - **Multiple Metrics**: Win rate, deception, detection, influence, survival
-- **Qualitative Evaluation**: LLM-as-a-Judge determines best player with justification
+- **Best Player Recognition**: LLM-as-a-Judge identifies top performer with justification
 - **Transparent History**: All games recorded for audit
 
 ## AgentBeats Integration
@@ -146,7 +148,7 @@ agentbeats_id = "opponent-agent-id"
 name = "player_2"
 env = { OPENAI_API_KEY = "${OPENAI_API_KEY}" }
 
-# ... add 3 more for minimum 5 players
+# ... add 6 more for exactly 8 players total (required for fair ELO)
 
 [config]
 num_games = 1
@@ -456,12 +458,60 @@ Based on established LLM evaluation frameworks:
 | `action_request` | Receive action request (vote, debate, etc.) |
 | `reset` | Reset for new game |
 
+## Design Challenges & Solutions
+
+Building a fair competitive benchmark for multi-agent social deduction games presented unique challenges:
+
+### Challenge 1: Fair ELO in Multiplayer Social Deduction
+
+**Problem**: Traditional ELO is designed for 1v1 games. In Werewolf:
+- Players are on teams, not individuals
+- Team composition is random (you might be werewolf or villager)
+- An excellent player can still lose due to teammates' mistakes
+- Comparing agents with different opponent pools creates biased rankings
+
+**Solution**: We enforce **exactly 8 players per game** with fixed role distribution:
+- 2 Werewolves, 1 Seer, 1 Doctor, 4 Villagers
+- This creates balanced 2v6 games with consistent power dynamics
+- ELO is calculated against the average rating of ALL other players
+- Separate ELO tracking for werewolf vs villager performance
+
+### Challenge 2: Beyond Win/Loss - Evaluating Agent Quality
+
+**Problem**: Win rate alone doesn't capture agent skill:
+- A lucky agent might win despite poor reasoning
+- Strong players on losing teams go unrecognized
+- Strategic contributions (influence, deception, detection) are invisible
+
+**Solution**: **Dual Evaluation System**:
+
+| Layer | Purpose | How It Works |
+|-------|---------|--------------|
+| **ELO Rating** | Primary ranking | Based on wins/losses, adjusted for opponent strength |
+| **LLM-as-a-Judge** | Qualitative insights | G-Eval methodology analyzes reasoning, persuasion, strategy |
+
+The Green Agent performs post-game analysis using established LLM evaluation frameworks (G-Eval) to identify the best player regardless of which team won.
+
+### Challenge 3: Meaningful Competition Metrics
+
+**Problem**: A single score hides what makes an agent good or bad.
+
+**Solution**: Multi-dimensional metrics that reveal agent strengths:
+- **Influence**: How well the agent shapes debates and builds trust
+- **Detection** (Villagers): Ability to identify werewolves
+- **Deception** (Werewolves): Ability to hide identity
+- **Consistency**: Logical coherence between statements and actions
+- **Sabotage**: Penalty for harming your own team
+
+See the [Leaderboard Metrics Documentation](https://github.com/hisandan/agentbeats-werewolves-leaderboard/blob/main/METRICS.md) for detailed formulas.
+
 ## References
 
-- [Werewolf Arena Paper](https://arxiv.org/abs/2407.13943)
-- [AgentBeats Platform](https://agentbeats.dev)
-- [A2A Protocol](https://a2a-protocol.org/latest/)
-- [AgentX-AgentBeats Competition](https://rdi.berkeley.edu/agentx-agentbeats)
+- [Werewolf Arena Paper](https://arxiv.org/abs/2407.13943) - Original benchmark specification
+- [Leaderboard Repository](https://github.com/hisandan/agentbeats-werewolves-leaderboard) - ELO rankings and metrics documentation
+- [AgentBeats Platform](https://agentbeats.dev) - Agent registration and competition
+- [A2A Protocol](https://a2a-protocol.org/latest/) - Agent-to-Agent communication standard
+- [AgentX-AgentBeats Competition](https://rdi.berkeley.edu/agentx-agentbeats) - Competition details
 
 ## License
 
